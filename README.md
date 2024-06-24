@@ -7,7 +7,6 @@
 ![Screenshot 2024-06-23 234609](https://github.com/Subhashreemohanty07/FirebaseAuthentication/assets/138459225/dc69cb2e-92c3-43d1-8c34-58304dad0ed7)
 <h3>Firebase Database</h3>
 ![Screenshot 2024-06-23 234647](https://github.com/Subhashreemohanty07/FirebaseAuthentication/assets/138459225/636e11eb-e67e-4bd9-a8ee-717d4c7cc505)
-<h3>OTP Verification</h3>![OtpScreenShot](https://github.com/Subhashreemohanty07/FirebaseAuthentication/assets/138459225/0c3546f9-61b9-4491-a63d-3ac5a15e117a)
-<br>
+<h3>OTP Verification</h3>
 ![Screenshot 2024-06-25 022809](https://github.com/Subhashreemohanty07/FirebaseAuthentication/assets/138459225/15c3f5ac-5b02-4376-ba88-c608b7a5310f)
 
