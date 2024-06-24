@@ -1,13 +1,9 @@
 package com.example.siliconfirebase
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -27,12 +23,14 @@ class MainActivity : ComponentActivity() {
             NavHost(navController = navController, startDestination = "signup") {
                 composable("signup") {
                     SignUpScreen(
-                        signUp = { email, password -> signUp(email, password, navController) }
+                        signUp = { email, password -> signUp(email, password, navController) },
+                        navController = navController
                     )
                 }
                 composable("login") {
                     LoginScreen(
-                        signIn = { email, password -> signIn(email, password) }
+                        signIn = { email, password -> signIn(email, password) },
+                        navController = navController
                     )
                 }
             }
@@ -43,12 +41,10 @@ class MainActivity : ComponentActivity() {
         auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    val user = auth.currentUser
-                    println("User created: $user")
+                    println("User created: ${auth.currentUser}")
                     navController.navigate("login")
                 } else {
-                    println("User couldn't be created")
-                    println(task.exception?.message)
+                    println("User couldn't be created: ${task.exception?.message}")
                 }
             }
     }
@@ -57,11 +53,9 @@ class MainActivity : ComponentActivity() {
         auth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    val user = auth.currentUser?.email
-                    println("User Logged In: $user")
+                    println("User Logged In: ${auth.currentUser?.email}")
                 } else {
-                    println("User couldn't be logged in")
-                    println("User couldn't be logged in${task.exception?.message}")
+                    println("User couldn't be logged in: ${task.exception?.message}")
                 }
             }
     }

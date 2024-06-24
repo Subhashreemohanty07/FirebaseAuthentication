@@ -17,15 +17,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.siliconfirebase.R
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun SignUpScreen(
     signUp: (String, String) -> Unit,
-    navController: NavController? = null
+    navController: NavController
 ) {
-    Scaffold{
+    Scaffold {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -58,7 +59,6 @@ fun SignUpScreen(
                         contentDescription = "Logo",
                         modifier = Modifier.size(100.dp)
                     )
-
                     Spacer(modifier = Modifier.height(5.dp))
 
                     var email by remember { mutableStateOf("") }
@@ -106,7 +106,7 @@ fun SignUpScreen(
                 Text(
                     text = "Login",
                     color = Color(0xFF1976D2),
-                    modifier = Modifier.clickable { navController?.navigate("login") }
+                    modifier = Modifier.clickable { navController.navigate("login") }
                 )
             }
         }
@@ -116,7 +116,9 @@ fun SignUpScreen(
 @Preview(showBackground = true)
 @Composable
 fun SignUpScreenPreview() {
+    val navController = rememberNavController()
     SignUpScreen(
-        signUp = { email, password -> println("Signup clicked: $email, $password") }
+        signUp = { email, password -> println("Signup clicked: $email, $password") },
+        navController = navController
     )
 }
