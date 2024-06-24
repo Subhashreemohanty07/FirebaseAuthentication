@@ -39,6 +39,17 @@ import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
 import java.util.concurrent.TimeUnit
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.sp
 
 class MainActivity : ComponentActivity() {
 
@@ -169,43 +180,107 @@ class MainActivity : ComponentActivity() {
                 }
             }
     }
-@Composable
-fun OTPScreen() {
-    val phoneNumber = remember { mutableStateOf("") }
-    val otpCode = remember { mutableStateOf("") }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(20.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ){
-        TextField(value = phoneNumber.value, onValueChange = {
-            phoneNumber.value = it
-        },
-            label = { Text(text = "Enter Phone Number")},
-            modifier = Modifier.fillMaxWidth())
+    @Composable
+    fun OTPScreen() {
+        val phoneNumber = remember { mutableStateOf("") }
+        val otpCode = remember { mutableStateOf("") }
+        val imageRes =
+            painterResource(id = R.drawable.otplogo) // Replace with your actual image resource name
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = {
-            startPhoneNumberVerification(phoneNumber.value)
-        }) {
-            Text(text = "Send OTP")
-        }
-        TextField(value = otpCode.value, onValueChange = {
-            otpCode.value = it
-        },
-            label = { Text(text = "Enter OTP")},
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = {
-            verifyPhoneWithCode(otpCode.value)
-        }) {
-            Text(text = "Verify OTP")
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxSize()
+            )
+            {
+                Box(
+                    modifier = Modifier
+                        .padding(20.dp)
+                        .background(
+                            color = Color(0xFFE4DDDD),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(25.dp)
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {Text(
+                        text = "OTP Verification",
+                        fontSize = 30.sp,
+                        color = Color.Black,
+
+                        modifier = Modifier.padding(8.dp)
+                    )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Image(
+                            painter = imageRes,
+                            contentDescription = "OTP Verification",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp)
+                        )
+
+                        Text(
+                            text = "Enter your phone number to receive a one-time password",
+                            fontSize = 16.sp,
+                            color = Color.Gray,
+                            fontStyle = FontStyle.Italic,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextField(
+                            value = phoneNumber.value,
+                            onValueChange = { phoneNumber.value = it },
+                            label = { Text(text = "Phone Number") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.White, shape = RoundedCornerShape(8.dp)),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { startPhoneNumberVerification(phoneNumber.value) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDAB7AC))
+                        ) {
+                            Text(text = "Send OTP")
+                        }
+                        Spacer(modifier = Modifier.height(32.dp))
+                        TextField(
+                            value = otpCode.value,
+                            onValueChange = { otpCode.value = it },
+                            label = { Text(text = "Enter OTP") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.White, shape = RoundedCornerShape(8.dp)),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { verifyPhoneWithCode(otpCode.value) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDAB7AC))
+                        ) {
+                            Text(text = "Verify OTP")
+                        }
+                    }
+                }
+            }
         }
     }
-}
+
+
 }
 
 
