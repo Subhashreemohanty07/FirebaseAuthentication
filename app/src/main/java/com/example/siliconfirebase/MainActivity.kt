@@ -1,6 +1,7 @@
 package com.example.siliconfirebase
 
 import android.content.ContentValues.TAG
+import android.graphics.Insets.add
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -42,14 +43,25 @@ import java.util.concurrent.TimeUnit
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.modifier.modifierLocalMapOf
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.sp
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
+import com.google.firebase.firestore.toObject
+
 
 class MainActivity : ComponentActivity() {
 
@@ -57,13 +69,19 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            Column {
-                Text(text = "col1")
-            }
+            //For Fetch User(Read)
             SiliconfirebaseTheme {
-                OTPScreen()
-
+                fetchUserDisplay()
             }
+
+            //for add user(WRITE)
+//            AddUserScreen()
+            // For OTP Verification
+//            SiliconfirebaseTheme {
+//                OTPScreen()
+//
+//            }
+            //FOR SIGNIN AND SIGNUP
 //            val navController = rememberNavController()
 //            NavHost(navController = navController, startDestination = "signup") {
 //                composable("signup") {
@@ -81,9 +99,15 @@ class MainActivity : ComponentActivity() {
 //            }
         }
     }
+
+
+
+
     private val auth = FirebaseAuth.getInstance()
+    val firebaseDB=Firebase.firestore
     var storedVerificationId: String?=null
     lateinit var resendToken: PhoneAuthProvider.ForceResendingToken
+    //SIgnup
     private fun signUp(email: String, password: String, navController: NavController) {
         auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
@@ -95,6 +119,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
     }
+    //for signin
     private fun signIn(email: String, password: String) {
         auth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
@@ -105,6 +130,40 @@ class MainActivity : ComponentActivity() {
                 }
             }
     }
+    //for adduser
+    fun addUserToFirebaseDB(name: String, age: Int) {
+        val isAdult = age >= 18
+        val firebaseUser = FirebaseUser(name, age, isAdult)
+
+        firebaseDB.collection("users")
+            .add(firebaseUser)
+            .addOnSuccessListener { dRef ->
+                // Successfully added user to Firestore
+                Log.d(TAG, "Document added with ID: ${dRef.id}")
+            }
+            .addOnFailureListener { e ->
+                // Failed to add user to Firestore
+                Log.w(TAG, "Document Could Not be added: $e")
+            }
+    }
+    //for fetch User means Read
+    fun fetchFirebaseUser(onResult: (List<FirebaseUser>)->Unit){
+        firebaseDB.collection("users")
+            .get()
+            .addOnSuccessListener { result->
+                val usersList=result.map{
+                    document->document.toObject(FirebaseUser::class.java)
+                }
+                onResult(usersList)
+            }
+            .addOnFailureListener{e->
+                Log.w(TAG,"Error Getting Data",e)
+            }
+    }
+
+
+    //....................................................................
+
     val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
 
         override fun onVerificationCompleted(credential: PhoneAuthCredential) {
@@ -279,8 +338,142 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+    //model
+    data class FirebaseUser(
+        val name:String="",
+        val age:Int=0,
+        val inAdult:Boolean=false
 
+    )
+    @Composable
+    fun AddUserScreen() {
+        val name = remember { mutableStateOf("") }
+        val age = remember { mutableStateOf("") }
 
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .padding(20.dp)
+                        .background(
+                            color = Color(0xFFDFE8EB),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(25.dp)
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "ADD User Detail",
+                            fontSize = 30.sp,
+                            color = Color.Black,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextField(
+                            value = name.value,
+                            onValueChange = { name.value = it },
+                            label = { Text(text = "Enter Name"
+                            , color = Color.Black) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.Gray, shape = RoundedCornerShape(8.dp)),
+//                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        TextField(
+                            value = age.value,
+                            onValueChange = { age.value = it },
+                            label = { Text(text = "Enter Age",
+                                color = Color.Black) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.Gray, shape = RoundedCornerShape(8.dp)),
+                            //keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = {
+                                addUserToFirebaseDB(
+                                    name.value,
+                                    age.value.toInt()
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF324FEC))
+                        ) {
+                            Text(text = "Add User",
+                                color = Color.White,
+                                fontSize = 15.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    @Composable
+    fun fetchUserDisplay(){
+        val usersList = remember {
+            mutableStateOf<List<FirebaseUser>>(emptyList())
+        }
+        //all the api
+        LaunchedEffect(Unit) {
+            fetchFirebaseUser { users ->
+                usersList.value = users
+            }
+
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Fetch The Existing Users",
+                fontSize = 26.sp,
+                color = Color.Black,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp)
+            ) {
+
+                itemsIndexed(usersList.value) { index, user ->
+                    val backgroundColor = if (index % 2 == 0) Color(0xFFE4DDDD) else Color(0xFFDAB7AC)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(backgroundColor)
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = "Name: ${user.name}, Age: ${user.age}",
+                            fontSize = 18.sp,
+                            color = Color.Black,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
+                    Divider()
+                }
+            }
+        }
+    }
 }
 
 
