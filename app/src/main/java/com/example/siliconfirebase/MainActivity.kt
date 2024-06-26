@@ -1,12 +1,18 @@
 package com.example.siliconfirebase
 
 import android.content.ContentValues.TAG
+import android.content.Context
 import android.graphics.Insets.add
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -44,6 +50,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -54,13 +61,19 @@ import androidx.compose.material3.Divider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.modifier.modifierLocalMapOf
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.sp
+import coil.compose.rememberAsyncImagePainter
+import coil.compose.rememberImagePainter
 import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
 import com.google.firebase.firestore.toObject
+import com.google.firebase.storage.storage
+import java.util.UUID
 
 
 class MainActivity : ComponentActivity() {
@@ -69,10 +82,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            //For Fetch User(Read)
+            //add image
             SiliconfirebaseTheme {
-                fetchUserDisplay()
+                ImageUploadScreen()
             }
+            //For Fetch User(Read)
+//            SiliconfirebaseTheme {
+//                fetchUserDisplay()
+//            }
 
             //for add user(WRITE)
 //            AddUserScreen()
@@ -101,12 +118,11 @@ class MainActivity : ComponentActivity() {
     }
 
 
-
-
     private val auth = FirebaseAuth.getInstance()
-    val firebaseDB=Firebase.firestore
-    var storedVerificationId: String?=null
+    val firebaseDB = Firebase.firestore
+    var storedVerificationId: String? = null
     lateinit var resendToken: PhoneAuthProvider.ForceResendingToken
+
     //SIgnup
     private fun signUp(email: String, password: String, navController: NavController) {
         auth.createUserWithEmailAndPassword(email, password)
@@ -119,6 +135,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
     }
+
     //for signin
     private fun signIn(email: String, password: String) {
         auth.signInWithEmailAndPassword(email, password)
@@ -130,6 +147,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
     }
+
     //for adduser
     fun addUserToFirebaseDB(name: String, age: Int) {
         val isAdult = age >= 18
@@ -146,19 +164,48 @@ class MainActivity : ComponentActivity() {
                 Log.w(TAG, "Document Could Not be added: $e")
             }
     }
-    //for fetch User means Read
-    fun fetchFirebaseUser(onResult: (List<FirebaseUser>)->Unit){
+
+    //for fetch User---> means Read
+    fun fetchFirebaseUser(onResult: (List<FirebaseUser>) -> Unit) {
         firebaseDB.collection("users")
             .get()
-            .addOnSuccessListener { result->
-                val usersList=result.map{
-                    document->document.toObject(FirebaseUser::class.java)
+            .addOnSuccessListener { result ->
+                val usersList = result.map { document ->
+                    document.toObject(FirebaseUser::class.java)
                 }
                 onResult(usersList)
             }
-            .addOnFailureListener{e->
-                Log.w(TAG,"Error Getting Data",e)
+            .addOnFailureListener { e ->
+                Log.w(TAG, "Error Getting Data", e)
             }
+    }
+
+    //for image store in the firebasestorage
+    val storage = Firebase.storage
+    val storageRef = storage.reference
+    fun uploadImage(uri: Uri, context: Context) {
+        val fileName = "images/${UUID.randomUUID()}.jpg"
+        val imageRef = storageRef.child(fileName)
+
+        imageRef.putFile(uri)
+            .addOnCompleteListener { takeSnapShot ->
+                imageRef.downloadUrl.addOnSuccessListener { uri ->
+                    Toast.makeText(
+                        context,
+                        "Image Uploaded Successfully:${uri}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
+            }
+            .addOnFailureListener { exception ->
+                Toast.makeText(
+                    context,
+                    "Image upload Failed:${exception.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
     }
 
 
@@ -207,6 +254,7 @@ class MainActivity : ComponentActivity() {
             resendToken = token
         }
     }
+
     fun startPhoneNumberVerification(phoneNumber: String) {
         val options = PhoneAuthOptions.newBuilder(auth)
             .setPhoneNumber(phoneNumber) // Phone number to verify
@@ -216,11 +264,13 @@ class MainActivity : ComponentActivity() {
             .build()
         PhoneAuthProvider.verifyPhoneNumber(options)
     }
+
     fun verifyPhoneWithCode(code: String) {
         val credential = PhoneAuthProvider.getCredential(storedVerificationId!!, code)
         signINWithPhoneCred(credential)
 
     }
+
     fun signINWithPhoneCred(cred: PhoneAuthCredential) {
         auth.signInWithCredential(cred)
             .addOnCompleteListener(this) { task ->
@@ -239,6 +289,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
     }
+
     @Composable
     fun OTPScreen() {
         val phoneNumber = remember { mutableStateOf("") }
@@ -270,13 +321,14 @@ class MainActivity : ComponentActivity() {
                     Column(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
-                    ) {Text(
-                        text = "OTP Verification",
-                        fontSize = 30.sp,
-                        color = Color.Black,
+                    ) {
+                        Text(
+                            text = "OTP Verification",
+                            fontSize = 30.sp,
+                            color = Color.Black,
 
-                        modifier = Modifier.padding(8.dp)
-                    )
+                            modifier = Modifier.padding(8.dp)
+                        )
                         Spacer(modifier = Modifier.height(16.dp))
                         Image(
                             painter = imageRes,
@@ -338,13 +390,15 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
     //model
     data class FirebaseUser(
-        val name:String="",
-        val age:Int=0,
-        val inAdult:Boolean=false
+        val name: String = "",
+        val age: Int = 0,
+        val inAdult: Boolean = false
 
     )
+
     @Composable
     fun AddUserScreen() {
         val name = remember { mutableStateOf("") }
@@ -384,8 +438,11 @@ class MainActivity : ComponentActivity() {
                         TextField(
                             value = name.value,
                             onValueChange = { name.value = it },
-                            label = { Text(text = "Enter Name"
-                            , color = Color.Black) },
+                            label = {
+                                Text(
+                                    text = "Enter Name", color = Color.Black
+                                )
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(Color.Gray, shape = RoundedCornerShape(8.dp)),
@@ -395,8 +452,12 @@ class MainActivity : ComponentActivity() {
                         TextField(
                             value = age.value,
                             onValueChange = { age.value = it },
-                            label = { Text(text = "Enter Age",
-                                color = Color.Black) },
+                            label = {
+                                Text(
+                                    text = "Enter Age",
+                                    color = Color.Black
+                                )
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(Color.Gray, shape = RoundedCornerShape(8.dp)),
@@ -415,17 +476,20 @@ class MainActivity : ComponentActivity() {
                                 .height(50.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF324FEC))
                         ) {
-                            Text(text = "Add User",
+                            Text(
+                                text = "Add User",
                                 color = Color.White,
-                                fontSize = 15.sp)
+                                fontSize = 15.sp
+                            )
                         }
                     }
                 }
             }
         }
     }
+
     @Composable
-    fun fetchUserDisplay(){
+    fun fetchUserDisplay() {
         val usersList = remember {
             mutableStateOf<List<FirebaseUser>>(emptyList())
         }
@@ -455,7 +519,8 @@ class MainActivity : ComponentActivity() {
             ) {
 
                 itemsIndexed(usersList.value) { index, user ->
-                    val backgroundColor = if (index % 2 == 0) Color(0xFFE4DDDD) else Color(0xFFDAB7AC)
+                    val backgroundColor =
+                        if (index % 2 == 0) Color(0xFFE4DDDD) else Color(0xFFDAB7AC)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -474,8 +539,32 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
 
+    @Composable
+    fun ImageUploadScreen() {
+        val context = LocalContext.current
+        val imageUri = remember {
+            mutableStateOf<Uri?>(null)
+        }
+        val launcher= rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {
+            uri: Uri?->imageUri.value=uri
+            uri.let { uploadImage(it!!,context) }
+
+        }
+        Column(modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally) {
+            Button(onClick = {launcher.launch("image/*") }) {
+                Text(text = "Select Image")
+            }
+            Spacer(modifier = Modifier.height(20.dp))
+            imageUri.value.let {uri-> Image(painter = rememberAsyncImagePainter(uri), contentDescription = "Upload Image",
+                modifier = Modifier.size(250.dp)) }
+        }
+    }
+
+
+}
 
 
 
