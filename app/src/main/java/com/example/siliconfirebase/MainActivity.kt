@@ -1,10 +1,14 @@
 package com.example.siliconfirebase
-
 import android.content.ContentValues.TAG
 import android.content.Context
+
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import android.Manifest
 import android.graphics.Insets.add
 import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -51,20 +55,34 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.modifier.modifierLocalMapOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import coil.compose.rememberImagePainter
@@ -76,19 +94,39 @@ import com.google.firebase.storage.storage
 import java.util.UUID
 
 
+
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            //add image
+            //for camera mic and location
             SiliconfirebaseTheme {
-                ImageUploadScreen()
+                HomePage()
+//                Column(
+//                    modifier = Modifier.fillMaxSize()
+//                        .padding(bottom = 20.dp),
+//                    verticalArrangement = Arrangement.Center,
+//                    horizontalAlignment = Alignment.CenterHorizontally
+//
+//                ) {
+//                    ImageUploadScreen()
+//                    PermissionRequestButton(permission = Manifest.permission.CAMERA, label = "Request Camera Permission")
+//                    PermissionRequestButton(permission = Manifest.permission.RECORD_AUDIO, label = "Request Microphone Permission")
+////                    PermissionRequestButton(permission = Manifest.permission.ACCESS_FINE_LOCATION, label = "Request Location Permission")
+//                }
             }
+
+            //add image
+//            SiliconfirebaseTheme {
+//                ImageUploadScreen()
+//            }
             //For Fetch User(Read)
 //            SiliconfirebaseTheme {
-//                fetchUserDisplay()
+//                Surface(color = MaterialTheme.colorScheme.background) {
+//                    fetchUserDisplay(navController = rememberNavController())
+//                }
 //            }
 
             //for add user(WRITE)
@@ -114,6 +152,31 @@ class MainActivity : ComponentActivity() {
 //                    )
 //                }
 //            }
+        }
+    }
+
+    @Composable
+    fun PermissionRequestButton(permission: String, label: String) {
+        val context = LocalContext.current
+        val permissionLauncher =
+            rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+                if (isGranted) {
+                    Toast.makeText(context, "$label Granted", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(
+                        context,
+                        "$label Denied. Please enable it from settings.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+//                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+//                    data = Uri.fromParts("package", context.packageName, null)
+//                }
+//                context.startActivity(intent)
+                }
+            }
+
+        Button(onClick = { permissionLauncher.launch(permission) }) {
+            Text(text = label)
         }
     }
 
@@ -149,18 +212,21 @@ class MainActivity : ComponentActivity() {
     }
 
     //for adduser
-    fun addUserToFirebaseDB(name: String, age: Int) {
-        val isAdult = age >= 18
-        val firebaseUser = FirebaseUser(name, age, isAdult)
+    fun addUserToFirebaseDB(context: Context,name: String, age: Int) {
+        val Adult = age >= 18
+        val firebaseUser = FirebaseUser(name, age, Adult)
+
 
         firebaseDB.collection("users")
             .add(firebaseUser)
             .addOnSuccessListener { dRef ->
                 // Successfully added user to Firestore
+                Toast.makeText(context, "User added successfully with ID: ${dRef.id}", Toast.LENGTH_SHORT).show()
                 Log.d(TAG, "Document added with ID: ${dRef.id}")
             }
             .addOnFailureListener { e ->
                 // Failed to add user to Firestore
+                Toast.makeText(context, "User could not be added: $e", Toast.LENGTH_SHORT).show()
                 Log.w(TAG, "Document Could Not be added: $e")
             }
     }
@@ -395,12 +461,13 @@ class MainActivity : ComponentActivity() {
     data class FirebaseUser(
         val name: String = "",
         val age: Int = 0,
-        val inAdult: Boolean = false
+        val Adult: Boolean = false
 
     )
 
     @Composable
-    fun AddUserScreen() {
+    fun AddUserScreen(onBackClick: () -> Unit) {
+        val context = LocalContext.current
         val name = remember { mutableStateOf("") }
         val age = remember { mutableStateOf("") }
 
@@ -445,7 +512,7 @@ class MainActivity : ComponentActivity() {
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color.Gray, shape = RoundedCornerShape(8.dp)),
+                                .background(Color.White, shape = RoundedCornerShape(8.dp)),
 //                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                         )
                         Spacer(modifier = Modifier.height(16.dp))
@@ -467,6 +534,7 @@ class MainActivity : ComponentActivity() {
                         Button(
                             onClick = {
                                 addUserToFirebaseDB(
+                                    context,
                                     name.value,
                                     age.value.toInt()
                                 )
@@ -489,7 +557,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun fetchUserDisplay() {
+    fun fetchUserDisplay(onBackClick: () -> Unit) {
         val usersList = remember {
             mutableStateOf<List<FirebaseUser>>(emptyList())
         }
@@ -508,7 +576,7 @@ class MainActivity : ComponentActivity() {
             Text(
                 text = "Fetch The Existing Users",
                 fontSize = 26.sp,
-                color = Color.Black,
+                color = Color.White,
                 modifier = Modifier.padding(top = 8.dp)
             )
 
@@ -517,11 +585,13 @@ class MainActivity : ComponentActivity() {
                     .fillMaxSize()
                     .padding(20.dp)
             ) {
-
-                itemsIndexed(usersList.value) { index, user ->
+                items(usersList.value) { user ->
                     val backgroundColor =
-                        if (index % 2 == 0) Color(0xFFE4DDDD) else Color(0xFFDAB7AC)
-                    Row(
+                        if (usersList.value.indexOf(user) % 2 == 0) Color(0xFFB8C0D8) else Color(
+                            0xFFF5ECF3
+                        )
+
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(backgroundColor)
@@ -533,6 +603,36 @@ class MainActivity : ComponentActivity() {
                             color = Color.Black,
                             modifier = Modifier.padding(8.dp)
                         )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Delete Button
+                            Button(
+                                onClick = {
+                                    // Implement delete operation here
+//                                    deleteUser(user.id)
+                                },
+//                               colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red),
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            ) {
+                                Text(text = "Delete", color = Color.White)
+                            }
+
+                            // Update Button
+                            Button(
+                                onClick = {
+                                    // Implement update operation here
+                                    // updateUserInfo(user.id)
+                                },
+//                               colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF8A2BE2)),
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            ) {
+                                Text(text = "Update", color = Color.White)
+                            }
+                        }
                     }
                     Divider()
                 }
@@ -540,34 +640,140 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+
+
+    // Function to delete a user from Firestore
+    fun deleteUser(userId: String) {
+        val firebaseDB = Firebase.firestore
+        firebaseDB.collection("users")
+            .document(userId)
+            .delete()
+            .addOnSuccessListener {
+                Log.d(TAG, "User deleted successfully")
+            }
+            .addOnFailureListener { e ->
+                Log.w(TAG, "Error deleting user", e)
+            }
+    }
+//
+
     @Composable
     fun ImageUploadScreen() {
         val context = LocalContext.current
         val imageUri = remember {
             mutableStateOf<Uri?>(null)
         }
-        val launcher= rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {
-            uri: Uri?->imageUri.value=uri
-            uri.let { uploadImage(it!!,context) }
+        val launcher =
+            rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+                imageUri.value = uri
+                uri.let { uploadImage(it!!, context) }
 
-        }
-        Column(modifier = Modifier.padding(20.dp),
+            }
+        Column(
+            modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally) {
-            Button(onClick = {launcher.launch("image/*") }) {
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Button(onClick = { launcher.launch("image/*") }) {
                 Text(text = "Select Image")
             }
             Spacer(modifier = Modifier.height(20.dp))
-            imageUri.value.let {uri-> Image(painter = rememberAsyncImagePainter(uri), contentDescription = "Upload Image",
-                modifier = Modifier.size(250.dp)) }
+            imageUri.value.let { uri ->
+                Image(
+                    painter = rememberAsyncImagePainter(uri), contentDescription = "Upload Image",
+                    modifier = Modifier.size(250.dp)
+                )
+            }
         }
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun HomePage() {
+        var currentScreen by remember { mutableStateOf("home") }
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            "Dashboard",
+                            fontSize = 35.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color(0xFF1E21E5)
+                    )
+                )
+            },
+            content = { padding ->
+                Column(
+                    modifier = Modifier
+                        .padding(padding)
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    when (currentScreen) {
+                        "home" -> {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                DashboardCard(iconId = R.drawable.img, label = "Insert User") {
+                                    currentScreen = "addUser"
+                                }
+                                DashboardCard(iconId = R.drawable.img_1, label = "Fetch User") {
+                                    currentScreen = "fetchUser"
+                                }
+                            }
+                        }
+                        "addUser" -> {
+                            AddUserScreen(onBackClick = { currentScreen = "home" })
+                        }
+                        "fetchUser" -> {
+                           fetchUserDisplay(onBackClick = { currentScreen = "home" })
+                        }
+                    }
+                }
+            }
+        )
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun DashboardCard(iconId: Int, label: String, onClick: () -> Unit) {
+
+        Card(
+            onClick = onClick,
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            modifier = Modifier
+                .width(150.dp)
+                .height(150.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    painter = painterResource(id = iconId),
+                    contentDescription = null,
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = label,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+            }
+        }
+    }
 
 }
-
-
-
-
-
-
