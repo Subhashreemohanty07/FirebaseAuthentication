@@ -1,21 +1,19 @@
 package com.example.siliconfirebase
 import android.content.ContentValues.TAG
 import android.content.Context
+import android.content.Intent
 
 import androidx.compose.ui.platform.LocalContext
-import android.content.Intent
-import android.Manifest
-import android.graphics.Insets.add
 import android.net.Uri
 import android.os.Bundle
-import android.provider.Settings
 import android.util.Log
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,15 +30,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.siliconfirebase.ui.theme.SiliconfirebaseTheme
 import androidx.navigation.NavController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.example.siliconfirebase.ui.theme.LoginScreen
-import com.example.siliconfirebase.ui.theme.SignUpScreen
 import com.google.firebase.FirebaseException
 import com.google.firebase.FirebaseTooManyRequestsException
 import com.google.firebase.auth.FirebaseAuth
@@ -58,8 +50,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -67,29 +59,28 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.modifier.modifierLocalMapOf
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.rememberAsyncImagePainter
-import coil.compose.rememberImagePainter
 import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
-import com.google.firebase.firestore.toObject
 import com.google.firebase.storage.storage
 import java.util.UUID
 
@@ -102,8 +93,19 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             //for camera mic and location
-            SiliconfirebaseTheme {
-                HomePage()
+//            SiliconfirebaseTheme{
+//                WebViewScreen(url = "https://www.google.com")
+//            Column(
+//                    modifier = Modifier
+//                        .padding(20.dp)
+//                        .fillMaxSize(),
+//                    verticalArrangement = Arrangement.Center,
+//                    horizontalAlignment = Alignment.CenterHorizontally
+//                ) {
+////              LinkText(text = "Click here to open website", url = "http://www.google.com")
+//                SharedPrefExample()
+//                }
+//                HomePage()
 //                Column(
 //                    modifier = Modifier.fillMaxSize()
 //                        .padding(bottom = 20.dp),
@@ -116,12 +118,12 @@ class MainActivity : ComponentActivity() {
 //                    PermissionRequestButton(permission = Manifest.permission.RECORD_AUDIO, label = "Request Microphone Permission")
 ////                    PermissionRequestButton(permission = Manifest.permission.ACCESS_FINE_LOCATION, label = "Request Location Permission")
 //                }
-            }
+//            }
 
             //add image
-//            SiliconfirebaseTheme {
-//                ImageUploadScreen()
-//            }
+            SiliconfirebaseTheme {
+                ImageUploadScreen()
+            }
             //For Fetch User(Read)
 //            SiliconfirebaseTheme {
 //                Surface(color = MaterialTheme.colorScheme.background) {
@@ -154,6 +156,123 @@ class MainActivity : ComponentActivity() {
 //            }
         }
     }
+
+    @Composable
+    fun LocalStateExample() {
+        var text by remember { mutableStateOf("") }
+        var savedText by remember { mutableStateOf("") }
+        Column {
+            TextField(value = text, onValueChange = {
+                text = it
+            }, label = { Text(text = "Enter Some Text")})
+            Text(text = "Saved Text: $savedText")
+            Button(onClick = {
+                savedText = text
+            }) {
+                Text(text = "Save Text")
+            }
+        }
+
+    }
+
+
+    @Composable
+    fun SharedPrefExample() {
+        val context = LocalContext.current
+        val sharedPref = context.getSharedPreferences("my_prefs", Context.MODE_PRIVATE)
+        val editor = sharedPref.edit()
+
+        var text by remember {
+            mutableStateOf(sharedPref.getString("saved_text", "") ?: "")
+        }
+        Column(
+            modifier = Modifier
+                .padding(20.dp)
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            TextField(value = text, onValueChange ={
+                text = it
+            }, label = {Text(text = "Enter some text")})
+            Button(onClick = {
+                editor.putString("saved_text", text)
+                editor.apply()
+            }) {
+                Text(text = "Save to Shared Pref")
+            }
+            Text(text = "Saved Text: ${sharedPref.getString("saved_text", "")}")
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    @Composable
+    fun LinkText(text: String, url: String) {
+        val context = LocalContext.current
+        val annotatedString = buildAnnotatedString {
+            append(text)
+            addStyle(
+                style =  SpanStyle(
+                    color = Color.Blue,
+                    textDecoration = TextDecoration.Underline
+                ),
+                start = 0,
+                end = text.length
+            )
+            addStringAnnotation(
+                tag = "URL",
+                annotation = url,
+                start = 0,
+                end = url.length
+            )
+        }
+
+        ClickableText(text = annotatedString,
+            onClick = { offset ->
+                annotatedString.getStringAnnotations("URL", offset, offset)
+                    .firstOrNull()?.let {stringAnnotation->
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(stringAnnotation.item))
+                        context.startActivity(intent)
+                    }
+            }
+        )
+    }
+
+    @Composable
+    fun WebViewScreen(url: String) {
+        val context = LocalContext.current
+        AndroidView(factory = {
+            WebView(context).apply {
+                webViewClient= WebViewClient()
+                settings.javaScriptEnabled = true
+                loadUrl(url)
+            }
+        },
+            update = {webView ->
+                webView.loadUrl(url)
+
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+
+
+
+
 
     @Composable
     fun PermissionRequestButton(permission: String, label: String) {
@@ -212,24 +331,33 @@ class MainActivity : ComponentActivity() {
     }
 
     //for adduser
-    fun addUserToFirebaseDB(context: Context,name: String, age: Int) {
-        val Adult = age >= 18
-        val firebaseUser = FirebaseUser(name, age, Adult)
-
+    fun addUserToFirebaseDB(context: Context, name: String, age: Int) {
+        val adult = age >= 18  // Renamed to lowercase 'adult' for better readability
+//        val id=""
+        val firebaseUser = FirebaseUser(name = name, age = age, adult = adult )
 
         firebaseDB.collection("users")
             .add(firebaseUser)
-            .addOnSuccessListener { dRef ->
+            .addOnSuccessListener { documentReference ->
                 // Successfully added user to Firestore
-                Toast.makeText(context, "User added successfully with ID: ${dRef.id}", Toast.LENGTH_SHORT).show()
-                Log.d(TAG, "Document added with ID: ${dRef.id}")
+                Toast.makeText(
+                    context,
+                    "User added successfully with ID: ${documentReference.id}",
+                    Toast.LENGTH_SHORT
+                ).show()
+                Log.d(TAG, "Document added with ID: ${documentReference.id}")
             }
             .addOnFailureListener { e ->
                 // Failed to add user to Firestore
-                Toast.makeText(context, "User could not be added: $e", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    "User could not be added: $e",
+                    Toast.LENGTH_SHORT
+                ).show()
                 Log.w(TAG, "Document Could Not be added: $e")
             }
     }
+
 
     //for fetch User---> means Read
     fun fetchFirebaseUser(onResult: (List<FirebaseUser>) -> Unit) {
@@ -237,7 +365,8 @@ class MainActivity : ComponentActivity() {
             .get()
             .addOnSuccessListener { result ->
                 val usersList = result.map { document ->
-                    document.toObject(FirebaseUser::class.java)
+                    val user = document.toObject(FirebaseUser::class.java)
+                    user.copy(id = document.id) // Set the user ID
                 }
                 onResult(usersList)
             }
@@ -459,11 +588,19 @@ class MainActivity : ComponentActivity() {
 
     //model
     data class FirebaseUser(
+        val id: String = "",
         val name: String = "",
         val age: Int = 0,
-        val Adult: Boolean = false
-
+        val adult: Boolean = false
     )
+
+
+//    data class FirebaseUser(
+//        val name: String = "",
+//        val age: Int= 0,
+//        val adult: Boolean = false
+//
+//    )
 
     @Composable
     fun AddUserScreen(onBackClick: () -> Unit) {
@@ -558,16 +695,29 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun fetchUserDisplay(onBackClick: () -> Unit) {
-        val usersList = remember {
-            mutableStateOf<List<FirebaseUser>>(emptyList())
-        }
-        //all the api
-        LaunchedEffect(Unit) {
-            fetchFirebaseUser { users ->
-                usersList.value = users
-            }
+        val usersList = remember { mutableStateOf<List<FirebaseUser>>(emptyList()) }
+        val showUpdateForm = remember { mutableStateOf(false) }
+        val userToUpdate = remember { mutableStateOf<FirebaseUser?>(null) }
 
+        DisposableEffect(Unit) {
+            val listenerRegistration = firebaseDB.collection("users")
+                .addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        Log.w(TAG, "Listen failed.", e)
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshot != null) {
+                        val users = snapshot.documents.map { it.toObject(FirebaseUser::class.java)!! }
+                        usersList.value = users
+                    }
+                }
+
+            onDispose {
+                listenerRegistration.remove()
+            }
         }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -586,10 +736,9 @@ class MainActivity : ComponentActivity() {
                     .padding(20.dp)
             ) {
                 items(usersList.value) { user ->
+                    val userId = user.id
                     val backgroundColor =
-                        if (usersList.value.indexOf(user) % 2 == 0) Color(0xFFB8C0D8) else Color(
-                            0xFFF5ECF3
-                        )
+                        if (usersList.value.indexOf(user) % 2 == 0) Color(0xFFB8C0D8) else Color(0xFFF5ECF3)
 
                     Column(
                         modifier = Modifier
@@ -612,10 +761,9 @@ class MainActivity : ComponentActivity() {
                             // Delete Button
                             Button(
                                 onClick = {
-                                    // Implement delete operation here
-//                                    deleteUser(user.id)
+                                    deleteUser(user.id)
                                 },
-//                               colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF324FEC)),
                                 modifier = Modifier.padding(horizontal = 8.dp)
                             ) {
                                 Text(text = "Delete", color = Color.White)
@@ -624,10 +772,10 @@ class MainActivity : ComponentActivity() {
                             // Update Button
                             Button(
                                 onClick = {
-                                    // Implement update operation here
-                                    // updateUserInfo(user.id)
+                                    userToUpdate.value = user
+                                    showUpdateForm.value = true
                                 },
-//                               colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF8A2BE2)),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF324FEC)),
                                 modifier = Modifier.padding(horizontal = 8.dp)
                             ) {
                                 Text(text = "Update", color = Color.White)
@@ -637,14 +785,23 @@ class MainActivity : ComponentActivity() {
                     Divider()
                 }
             }
+
+            if (showUpdateForm.value) {
+                userToUpdate.value?.let { user ->
+                    UpdateUserForm(user) { newName, newAge ->
+                        updateUser(user.id, newName, newAge)
+                        showUpdateForm.value = false
+                    }
+                }
+            }
         }
     }
 
 
 
-    // Function to delete a user from Firestore
+
+    // Function to delete a user from Firestore based on user ID
     fun deleteUser(userId: String) {
-        val firebaseDB = Firebase.firestore
         firebaseDB.collection("users")
             .document(userId)
             .delete()
@@ -655,6 +812,57 @@ class MainActivity : ComponentActivity() {
                 Log.w(TAG, "Error deleting user", e)
             }
     }
+    //for update
+    fun updateUser(userId: String, name: String, age: Int) {
+        val adult = age >= 18
+        val updatedUser = FirebaseUser(userId, name, age, adult)
+
+        firebaseDB.collection("users")
+            .document(userId)
+            .set(updatedUser)
+            .addOnSuccessListener {
+                Log.d(TAG, "User updated successfully")
+            }
+            .addOnFailureListener { e ->
+                Log.w(TAG, "Error updating user", e)
+            }
+    }
+//updatescreen
+@Composable
+fun UpdateUserForm(user: FirebaseUser, onUpdate: (String, Int) -> Unit) {
+    var newName by remember { mutableStateOf(user.name) }
+    var newAge by remember { mutableStateOf(user.age.toString()) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    ) {
+        OutlinedTextField(
+            value = newName,
+            onValueChange = { newName = it },
+            label = { Text("Name") }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = newAge,
+            onValueChange = { newAge = it },
+            label = { Text("Age") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = {
+                onUpdate(newName, newAge.toIntOrNull() ?: user.age)
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF324FEC))
+        ) {
+            Text(text = "Update", color = Color.White)
+        }
+    }
+}
+
+
 //
 
     @Composable
