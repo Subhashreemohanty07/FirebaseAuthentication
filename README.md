@@ -1,4 +1,4 @@
-FireBase Authentication
+# FireBase Authentication
 ## SignUp Page
 ![Screenshot 2024-06-23 234345](https://github.com/Subhashreemohanty07/FirebaseAuthentication/assets/138459225/d5e04ce9-7d39-45f4-94fe-5425d2bcd5d8)
 
